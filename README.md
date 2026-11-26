@@ -1,95 +1,48 @@
+# Energy Monitoring System and Automation — Reconstructed Firmware
 
-# Energy Monitoring System and Automation
+This folder contains a **reconstructed reference implementation** based on the architecture described in the Semester V project report and the team's clarification that the Wi-Fi module used was an **ESP8266**.
 
-An embedded and IoT-based project designed to monitor electrical energy consumption, identify appliance activity, and enable remote appliance control.
+> **Provenance:** These files are not the original project source code. The report's Appendix B contains GSM/SIM900A and MPU6050 accident-detection sketches, which do not implement the energy-monitoring system. The files here are a new, clearly labelled reconstruction to demonstrate the intended STM32-to-Wi-Fi monitoring architecture.
 
-## Project Overview
+## Contents
 
-The Energy Monitoring System and Automation project aims to reduce energy wastage in classrooms and laboratory environments through real-time monitoring, intelligent load identification, and automated control.
+- `STM32_Firmware/STM32_Energy_Monitor.ino` — analogue sampling, RMS estimates, energy accumulation, basic over-current relay action, and UART telemetry.
+- `ESP8266_Firmware/ESP8266_Blynk_Gateway.ino` — UART CSV reception, Wi-Fi/Blynk connection, telemetry publishing, and relay command forwarding.
 
-The system uses an STM32 microcontroller to acquire and process voltage and current signals. Non-Intrusive Load Monitoring (NILM) techniques are used to identify operating appliances from their electrical signatures. Processed information is communicated to a Wi-Fi module, allowing users to monitor energy usage and control appliances through a mobile or web dashboard.
+## Report-aligned hardware references
 
-## Objectives
+- STM32 NUCLEO-F103RB controller
+- ACS712 current sensor
+- AC voltage-sensing module (the report refers to ZMPT101B in its implementation/results sections and LM358-based sensing in an earlier overview)
+- ESP8266 Wi-Fi module (confirmed by the project team; some report sections instead say ESP32)
+- Relay module / isolated relay driver
+- Blynk dashboard
 
-- Monitor electrical parameters in real time.
-- Identify appliance activity using NILM.
-- Calculate RMS voltage, current, and power.
-- Enable remote ON/OFF control of electrical appliances.
-- Detect abnormal load conditions and potential faults.
-- Reduce unnecessary energy consumption.
+## Blynk datastream mapping
 
-## Hardware Components
+| Virtual pin | Meaning | Unit / value |
+|---|---|---|
+| V0 | RMS voltage | V |
+| V1 | RMS current | A |
+| V2 | Voltage × current estimate | VA (not true real power) |
+| V3 | Accumulated energy estimate | Wh |
+| V4 | Relay state | 0 = OFF, 1 = ON |
+| V5 | Relay control button | 0 = OFF, 1 = ON |
 
-| Component | Purpose |
-|---|---|
-| STM32 Nucleo-F103RB | Data acquisition and processing |
-| ACS712 Current Sensor | Current measurement |
-| ZMPT101B Voltage Sensor | AC voltage measurement |
-| ESP Wi-Fi Module | Wireless communication |
-| Relay Module | Appliance switching |
-| OLED Display (0.96 inch) | Local information display |
-| Jumper Wires | Hardware connections |
-| 9W Bulb | Demonstration load |
+## Before compiling or connecting hardware
 
-## Software and Technologies
+1. Install the STM32duino core for the NUCLEO-F103RB and the ESP8266 Arduino core.
+2. Add the Blynk library and configure the Template ID, Auth Token, Wi-Fi SSID, and password in the ESP8266 sketch.
+3. Verify the STM32 ADC pins, UART instance/pins, relay-driver pin, relay polarity, and ESP8266 UART pins against the actual wiring.
+4. Calibrate voltage and current conversion constants using appropriate isolated, calibrated test equipment. The constants in the sketch are placeholders/examples, not validated project calibration values.
+5. The current calculation assumes an ACS712-20A sensitivity of 100 mV/A; change it to match the exact ACS712 variant.
+6. The `voltage × current` calculation is an apparent-power estimate. True real power and power factor require synchronized voltage/current waveform multiplication and suitable calibration.
+7. The sample-based RMS routines are demonstration code and should be validated for timing, sampling rate, filtering, and accuracy before any real deployment.
 
-- Embedded C / Microcontroller Programming
-- STM32
-- ESP-based Wi-Fi Communication
-- Blynk IoT Dashboard
-- UART Communication
-- ADC Signal Acquisition
-- Non-Intrusive Load Monitoring (NILM)
+## Safety
 
-## System Working
+Mains voltage is dangerous. Do not connect or test this circuit on live mains unless supervised by a qualified person using correctly rated isolation, sensor modules, fuses, enclosures, and relay drivers. Never connect mains directly to an MCU. The example over-current threshold and relay logic are not a certified protection system.
 
-1. The AC mains supply provides power to the connected electrical loads.
-2. Voltage and current sensors acquire electrical signals from the supply.
-3. The STM32 microcontroller samples these signals through its ADC channels.
-4. The controller processes the signals to calculate RMS voltage, current, and power.
-5. NILM techniques analyze electrical signatures to identify active appliances.
-6. Relay driver circuits allow appliances to be switched ON or OFF.
-7. Processed data is transferred to the Wi-Fi module through UART communication.
-8. The Blynk dashboard provides remote monitoring and appliance control.
-9. Abnormal current patterns and unexpected load conditions can trigger fault detection and safety actions.
+## Scope and limitations
 
-## Key Features
-
-- Real-time electrical parameter monitoring
-- Centralized energy monitoring
-- NILM-based appliance identification
-- Remote appliance control
-- Relay-based automation
-- Abnormal load and fault detection
-- IoT dashboard integration
-
-## Applications
-
-- Smart classrooms and laboratories
-- Residential energy management
-- Offices and commercial buildings
-- Warehouses
-- Smart energy monitoring systems
-
-## Future Scope
-
-- AI-based appliance identification
-- Multi-room and multi-building monitoring
-- Advanced cloud data storage and analytics
-- PCB miniaturization
-- Renewable energy and smart-grid integration
-- Mobile application enhancements and voice control
-
-## Project Report
-
-The complete academic project report is available here:
-
-(Energy_Monitoring_System_Project_Report.pdf)
-
-## Academic Details
-
-- **Course:** Mini Project 2A
-- **Semester:** V
-- **Academic Year:** 2025–2026
-- **Department:** Electronics and Telecommunication Engineering
-- **Institute:** Don Bosco Institute of Technology, Mumbai
+This reference implementation demonstrates sensing, telemetry, dashboard integration, and a basic relay command path. It does **not** implement a complete NILM appliance-classification algorithm. NILM requires additional signal-feature extraction/classification work and validation against labelled appliance data.
